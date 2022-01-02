@@ -6,23 +6,25 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Networking;
 
-
-
 public class DataManager : MonoBehaviour
 {
     public string WebAPIKey;
     public string WebAPIKeyFilePath;
     public string SteamID;
 
+    public List<int> IgnoredAppIDs = new List<int>();
+
     [HideInInspector]
     public string json;
 
     public List<SteamApplication> steamApplications = new List<SteamApplication>();
 
+    public bool IsDone = false;
+
     private void Awake()
     {
         WebAPIKey = System.IO.File.ReadAllText(Application.dataPath + "/" + WebAPIKeyFilePath);
-        
+
         _getData = GetData();
         StartCoroutine(_getData);
     }
@@ -40,10 +42,15 @@ public class DataManager : MonoBehaviour
         Root root = JsonUtility.FromJson<Root>(json);
         Debug.Log(root.response.game_count);
 
-        
+        // Remove all games that have 0 playtime
+        root.response.games.RemoveAll(item => item.playtime_forever <= 0);
+        root.response.game_count = root.response.games.Count;     
 
         foreach(Game game in root.response.games)
         {
+            if (IgnoredAppIDs.Contains(game.appid))
+                continue;
+
             requestURL = $"https://store.steampowered.com/api/appdetails?appids=" + game.appid.ToString() + "&l=english";
             www = UnityWebRequest.Get(requestURL);
 
@@ -51,25 +58,25 @@ public class DataManager : MonoBehaviour
             json = www.downloadHandler.text;
 
             SteamApplication app = new SteamApplication();
-            int indexof = json.IndexOf("name");
+            int indexof = json.IndexOf("name\":");
             if (indexof < 0)
                 continue;
 
-            app.name = json.Substring(indexof + 6);
+            app.steam_appid = game.appid;
+
+            app.name = json.Substring(indexof + 7);
             app.name = app.name.Split(',')[0];
             app.name = app.name.Trim('"');
             app.name = app.name.Trim('\'');
-            app.ExtractGenres(json);
 
-            app.steam_appid = game.appid;
+            app.ExtractGenres(json);
 
             steamApplications.Add(app);
         }
 
         Debug.Log("Done scrapping");
-    }
-
-    
+        IsDone = true;
+    }    
 
     [Serializable]
     public class Root
@@ -106,17 +113,16 @@ public class DataManager : MonoBehaviour
     [Serializable]
     public class SteamApplication
     {
-        public string genre;
+        public List<string> genres = new List<string>();
         public string name;
         public int steam_appid;
 
         public void ExtractGenres(string json)
         {
-            genre = json.Substring(json.IndexOf("genres") + 8);
-            genre = genre.Split(']')[0];
-            string[] genres = genre.Split('}');
-
-            genre = "";
+            // Check scrapping for Sanctum 2, it gives from description as it seems
+            string temp = json.Substring(json.IndexOf("genres") + 8);
+            temp = temp.Split(']')[0];
+            string[] genres = temp.Split('}');
 
             for (int i = 0; i < genres.Length - 1; ++i)
             {
@@ -124,20 +130,21 @@ public class DataManager : MonoBehaviour
                 if (indexOf < 0)
                     continue;
 
-                genre += genres[i].Substring(genres[i].IndexOf("description") + "description".Length + 2);
-                if (i < genres.Length - 2)
-                    genre += "-";
-            }
-
-            genre = genre.Replace('"', ' ');
-            genre = genre.Trim();
-            
-            Debug.Log(genre);
+                string temp2 = genres[i].Substring(genres[i].IndexOf("description") + "description".Length + 2);
+                temp2 = temp2.Replace('"', ' ');
+                temp2 = temp2.Trim();
+                this.genres.Add(temp2);
+            }                       
         }
 
         public override string ToString()
         {
-            return $"AppID: {steam_appid}, name: {name}, genre: {genre}";
+            string temp = "";
+            foreach(string genre in genres)
+            {
+                temp += genre + " ";
+            }
+            return $"AppID: {steam_appid}, name: {name}, genres: {temp}";
         }
     }
 }
