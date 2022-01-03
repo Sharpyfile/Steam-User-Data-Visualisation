@@ -18,6 +18,9 @@ public class DataManager : MonoBehaviour
     public string json;
 
     public List<SteamApplication> steamApplications = new List<SteamApplication>();
+    public Response Games;
+
+    public int MinimumPlaytime = 60;
 
     public bool IsDone = false;
 
@@ -32,21 +35,22 @@ public class DataManager : MonoBehaviour
     IEnumerator _getData;
     IEnumerator GetData()
     {
-        string requestURL = $"https://api.steampowered.com/IPlayerService/GetOwnedGames/v1/?key={WebAPIKey}&steamid={SteamID}&include_appinfo=false&include_played_free_games=false&count=3";
+        string requestURL = $"https://api.steampowered.com/IPlayerService/GetOwnedGames/v1/?key={WebAPIKey}&steamid={SteamID}&include_appinfo=false&include_played_free_games=true&count=3";
         UnityWebRequest www = UnityWebRequest.Get(requestURL);
 
         yield return www.SendWebRequest();
-
         json = www.downloadHandler.text;
 
         Root root = JsonUtility.FromJson<Root>(json);
         Debug.Log(root.response.game_count);
 
         // Remove all games that have 0 playtime
-        root.response.games.RemoveAll(item => item.playtime_forever <= 0);
-        root.response.game_count = root.response.games.Count;     
+        root.response.games.RemoveAll(item => item.playtime_forever <= MinimumPlaytime);
+        root.response.game_count = root.response.games.Count;
 
-        foreach(Game game in root.response.games)
+        Games = root.response;
+
+        foreach (Game game in root.response.games)
         {
             if (IgnoredAppIDs.Contains(game.appid))
                 continue;

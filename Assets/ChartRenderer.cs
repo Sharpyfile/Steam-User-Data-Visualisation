@@ -1,6 +1,8 @@
 using System.Collections;
+using System.Linq;
 using System.Collections.Generic;
 using UnityEngine;
+using static DataManager;
 
 public class ChartRenderer : MonoBehaviour
 {
@@ -10,7 +12,7 @@ public class ChartRenderer : MonoBehaviour
     public float RadiusInner;
     public float RadiusOuter;
 
-
+    public GameObject NodePrefab;
 
     private void Start()
     {
@@ -29,10 +31,7 @@ public class ChartRenderer : MonoBehaviour
             yield return new WaitForSecondsRealtime(0.5f);
         }
 
-        // Get all applications and assign them a degree
-        float arcDegrees = 360.0f / Data.steamApplications.Count;
-        arcDegrees = arcDegrees * Mathf.Deg2Rad;
-        DrawSunburstChild(arcDegrees);
+        DrawSunburst();
 
         yield break;
     }
@@ -41,64 +40,95 @@ public class ChartRenderer : MonoBehaviour
     /// Draws sunburst chart
     /// </summary>
     /// <param name="arcDegrees"> Arc degree, needs to be in radians</param>
-    void DrawSunburstChild(float arcDegrees)
+    void DrawSunburst()
     {
-        gameObject.AddComponent<MeshFilter>();
-        gameObject.AddComponent<MeshRenderer>();
-        Mesh mesh = GetComponent<MeshFilter>().mesh;
-        List<Vector3> lowerArc = new List<Vector3>();
-        List<Vector3> upperArc = new List<Vector3>();
+        float arcDegrees = 0.0f;
+        arcDegrees = arcDegrees * Mathf.Deg2Rad;
 
-        Vector3 center = transform.position;
-
-        for (int i = 0; i < Data.steamApplications.Count; ++i)
+        int playtimeSum = 0;
+        foreach (Game game in Data.Games.games)
         {
-            float innerX = Mathf.Cos(arcDegrees * i) * RadiusInner + center.x;
-            float innerY = center.y;
-            float innerZ = Mathf.Sin(arcDegrees * i) * RadiusInner + center.z;
+            playtimeSum += game.playtime_forever;
+        }
 
-            float outerX = Mathf.Cos(arcDegrees * i) * RadiusOuter + center.x;
+        Data.Games.games = Data.Games.games.OrderByDescending(item => item.playtime_forever).ToList();
+        
+        foreach (Game game in Data.Games.games)
+        {
+            var app = Data.steamApplications.Find(item => item.steam_appid == game.appid);
+            if (app == null)
+                continue;
+            Debug.Log(app.name);
+
+            Mesh mesh = new Mesh();
+            List<Vector3> lowerArc = new List<Vector3>();
+            List<Vector3> upperArc = new List<Vector3>();
+
+            Vector3 center = transform.position;
+
+            float innerX = Mathf.Cos(arcDegrees) * RadiusInner + center.x;
+            float innerY = center.y;
+            float innerZ = Mathf.Sin(arcDegrees) * RadiusInner + center.z;
+
+            float outerX = Mathf.Cos(arcDegrees) * RadiusOuter + center.x;
             float outerY = center.y;
-            float outerZ = Mathf.Sin(arcDegrees * i) * RadiusOuter + center.z;
+            float outerZ = Mathf.Sin(arcDegrees) * RadiusOuter + center.z;
 
             lowerArc.Add(new Vector3(innerX, innerY, innerZ));
             upperArc.Add(new Vector3(outerX, outerY, outerZ));
-        }
 
-        List<Vector3> vertices = new List<Vector3>();
-        List<int> indices = new List<int>();
+            float newArcDegrees = arcDegrees * Mathf.Rad2Deg;
+            float time = game.playtime_forever * 100.0f / playtimeSum;
 
-        // Define vertices
-        for (int i = 0; i < lowerArc.Count - 1; ++i)
-        {
-            vertices.Add(upperArc[i]);      // 1
-            vertices.Add(lowerArc[i]);      // 0            
-            vertices.Add(lowerArc[i + 1]);  // 2
+            
+            newArcDegrees += (360.0f * time / 100.0f);
+            Debug.Log(newArcDegrees);
+            arcDegrees = newArcDegrees * Mathf.Deg2Rad;
 
-            vertices.Add(upperArc[i]);      // 1
-            vertices.Add(lowerArc[i + 1]);  // 2
-            vertices.Add(upperArc[i + 1]);  // 3
-        }
+            innerX = Mathf.Cos(arcDegrees) * RadiusInner + center.x;
+            innerY = center.y;
+            innerZ = Mathf.Sin(arcDegrees) * RadiusInner + center.z;
 
-        // Define indices
-        for (int i = 0; i < vertices.Count - 2; ++i)
-        {
-            indices.Add(i); //
-            indices.Add(i + 1); // 2
-            indices.Add(i + 2); // 3
-        }
-        indices.Add(vertices.Count - 1);
-        indices.Add(vertices.Count - 2);
-        indices.Add(1);
+            outerX = Mathf.Cos(arcDegrees) * RadiusOuter + center.x;
+            outerY = center.y;
+            outerZ = Mathf.Sin(arcDegrees) * RadiusOuter + center.z;
+
+            lowerArc.Add(new Vector3(innerX, innerY, innerZ));
+            upperArc.Add(new Vector3(outerX, outerY, outerZ));
+
+            List<Vector3> vertices = new List<Vector3>();
+            List<int> indices = new List<int>();
+
+            vertices.Add(lowerArc[0]);
+            vertices.Add(upperArc[1]);      
+            vertices.Add(upperArc[0]);
+            vertices.Add(lowerArc[1]);
+
+            indices.Add(0);
+            indices.Add(1);
+            indices.Add(2);
+
+            indices.Add(0);
+            indices.Add(3);
+            indices.Add(1);
 
 
-        indices.Add(vertices.Count - 1);
-        indices.Add(1);        
-        indices.Add(0);
+            foreach (Vector3 point in vertices)
+            {
+                var sphere = GameObject.CreatePrimitive(PrimitiveType.Sphere);
+                sphere.transform.position = point;
+                sphere.transform.localScale = new Vector3(0.1f, 0.1f, 0.1f);
+            }
 
+            mesh.Clear();
+            mesh.vertices = vertices.ToArray();
+            mesh.triangles = indices.ToArray();
 
-        mesh.Clear();
-        mesh.vertices = vertices.ToArray();
-        mesh.triangles = indices.ToArray();
+            GameObject newObject = Instantiate(NodePrefab, transform);
+            newObject.GetComponent<MeshFilter>().mesh = mesh;
+            newObject.GetComponent<MeshCollider>().sharedMesh = newObject.GetComponent<MeshFilter>().mesh;
+            newObject.GetComponent<GameInfo>().OwnedGame = game;
+            newObject.GetComponent<GameInfo>().GameApplication = Data.steamApplications.Find(item => item.steam_appid == game.appid);
+        }        
     }
 }
