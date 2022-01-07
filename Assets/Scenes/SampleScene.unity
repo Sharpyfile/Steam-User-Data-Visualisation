@@ -123,6 +123,36 @@ NavMeshSettings:
     debug:
       m_Flags: 0
   m_NavMeshData: {fileID: 0}
+--- !u!1 &174809791
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 174809792}
+  m_Layer: 0
+  m_Name: Spheres
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &174809792
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 174809791}
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_RootOrder: 7
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &498757557
 GameObject:
   m_ObjectHideFlags: 0
@@ -175,7 +205,7 @@ MeshRenderer:
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
-  - {fileID: 10303, guid: 0000000000000000f000000000000000, type: 0}
+  - {fileID: 2100000, guid: d77de3ce8be69944a8f9c3a7b9ccd775, type: 2}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
@@ -498,7 +528,7 @@ MeshRenderer:
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
-  - {fileID: 10303, guid: 0000000000000000f000000000000000, type: 0}
+  - {fileID: 2100000, guid: d77de3ce8be69944a8f9c3a7b9ccd775, type: 2}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
@@ -577,14 +607,24 @@ MonoBehaviour:
   WebAPIKey: 
   WebAPIKeyFilePath: webapikey.DONOTPOST
   SteamID: 76561198065804093
-  IgnoredAppIDs: c6340500
+  IgnoredAppIDs: c634050052370300c4d3030066940500
+  Genres: []
+  BlockedGenres:
+  - Utilities
+  - Education
+  - Web Publishing
+  - Software Training
+  - Video Production
+  - Animation & Modeling
+  - Gore
   json: 
   steamApplications: []
   Games:
     game_count: 0
     games: []
-  MinimumPlaytime: 300
   IsDone: 0
+  PlaytimeAmount: 0
+  TogglePrefab: {fileID: 5782970279196897743, guid: d3ca3239d50e7c54895f01fa42a145c5, type: 3}
 --- !u!4 &1951745455
 Transform:
   m_ObjectHideFlags: 0
@@ -614,7 +654,9 @@ MonoBehaviour:
   Data: {fileID: 1951745454}
   RadiusInner: 4
   RadiusOuter: 6
+  MinimumPlaytime: 0
   NodePrefab: {fileID: 1688882848708592783, guid: 06bb5a07dff9a944abcad25fc1529d66, type: 3}
+  SpheresContainer: {fileID: 174809791}
 --- !u!23 &1951745457
 MeshRenderer:
   m_ObjectHideFlags: 0
@@ -675,6 +717,18 @@ PrefabInstance:
       propertyPath: m_Name
       value: Canvas
       objectReference: {fileID: 0}
+    - target: {fileID: 905631741442045875, guid: ca32c2c44628b574f801b0e0b4a1af18, type: 3}
+      propertyPath: m_AnchorMax.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 905631741442045875, guid: ca32c2c44628b574f801b0e0b4a1af18, type: 3}
+      propertyPath: m_AnchorMax.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 905631741442045875, guid: ca32c2c44628b574f801b0e0b4a1af18, type: 3}
+      propertyPath: m_AnchorMin.x
+      value: 0
+      objectReference: {fileID: 0}
     - target: {fileID: 918831657082698225, guid: ca32c2c44628b574f801b0e0b4a1af18, type: 3}
       propertyPath: m_AnchorMax.y
       value: 0
@@ -699,6 +753,10 @@ PrefabInstance:
       propertyPath: m_AnchoredPosition.y
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 2567897334827408131, guid: ca32c2c44628b574f801b0e0b4a1af18, type: 3}
+      propertyPath: m_AnchorMax.y
+      value: 0
+      objectReference: {fileID: 0}
     - target: {fileID: 3878193881115644938, guid: ca32c2c44628b574f801b0e0b4a1af18, type: 3}
       propertyPath: m_AnchorMax.y
       value: 0
@@ -721,6 +779,10 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 3878193881115644938, guid: ca32c2c44628b574f801b0e0b4a1af18, type: 3}
       propertyPath: m_AnchoredPosition.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 6022190220645476927, guid: ca32c2c44628b574f801b0e0b4a1af18, type: 3}
+      propertyPath: m_AnchorMax.y
       value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 7998069869416904624, guid: ca32c2c44628b574f801b0e0b4a1af18, type: 3}

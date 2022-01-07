@@ -7,15 +7,21 @@ using static DataManager;
 public class ChartRenderer : MonoBehaviour
 {
     // Start is called before the first frame update
+    public static ChartRenderer Instance;
 
     public DataManager Data;
     public float RadiusInner;
     public float RadiusOuter;
 
+    public int MinimumPlaytime = 300;
+
     public GameObject NodePrefab;
+    public GameObject SpheresContainer;
 
     private void Start()
     {
+        Instance = this;
+
         _drawSunburstChart = DrawSunburstChart();
         StartCoroutine(_drawSunburstChart);
     }
@@ -31,7 +37,8 @@ public class ChartRenderer : MonoBehaviour
             yield return new WaitForSecondsRealtime(0.5f);
         }
 
-        DrawSunburst();
+
+        DrawSunburst(0, 999999);
 
         yield break;
     }
@@ -40,25 +47,40 @@ public class ChartRenderer : MonoBehaviour
     /// Draws sunburst chart
     /// </summary>
     /// <param name="arcDegrees"> Arc degree, needs to be in radians</param>
-    void DrawSunburst()
+    public void DrawSunburst(float minPlaytime, float maxPlaytime)
     {
+        for(int i = transform.childCount - 1; i >= 0; i--)
+        {
+            Destroy(transform.GetChild(i).gameObject);
+        }
+
         float arcDegrees = 0.0f;
         arcDegrees = arcDegrees * Mathf.Deg2Rad;
 
         int playtimeSum = 0;
-        foreach (Game game in Data.Games.games)
-        {
-            playtimeSum += game.playtime_forever;
-        }
 
         Data.Games.games = Data.Games.games.OrderByDescending(item => item.playtime_forever).ToList();
-        
+
         foreach (Game game in Data.Games.games)
         {
             var app = Data.steamApplications.Find(item => item.steam_appid == game.appid);
             if (app == null)
                 continue;
-            Debug.Log(app.name);
+
+            if (game.playtime_forever < minPlaytime || game.playtime_forever > maxPlaytime)
+                continue;
+
+            playtimeSum += game.playtime_forever;           
+        }        
+
+        foreach (Game game in Data.Games.games)
+        {
+            var app = Data.steamApplications.Find(item => item.steam_appid == game.appid);
+            if (app == null)
+                continue;
+
+            if (game.playtime_forever < minPlaytime || game.playtime_forever > maxPlaytime)
+                continue;
 
             Mesh mesh = new Mesh();
             List<Vector3> lowerArc = new List<Vector3>();
@@ -79,7 +101,6 @@ public class ChartRenderer : MonoBehaviour
 
             float newArcDegrees = arcDegrees * Mathf.Rad2Deg;
             float time = game.playtime_forever * 100.0f / playtimeSum;
-
             
             newArcDegrees += (360.0f * time / 100.0f);
             Debug.Log(newArcDegrees);
@@ -111,14 +132,6 @@ public class ChartRenderer : MonoBehaviour
             indices.Add(0);
             indices.Add(3);
             indices.Add(1);
-
-
-            foreach (Vector3 point in vertices)
-            {
-                var sphere = GameObject.CreatePrimitive(PrimitiveType.Sphere);
-                sphere.transform.position = point;
-                sphere.transform.localScale = new Vector3(0.1f, 0.1f, 0.1f);
-            }
 
             mesh.Clear();
             mesh.vertices = vertices.ToArray();

@@ -8,11 +8,15 @@ using UnityEngine.Networking;
 
 public class DataManager : MonoBehaviour
 {
+    public static DataManager Instance;
+
     public string WebAPIKey;
     public string WebAPIKeyFilePath;
     public string SteamID;
 
     public List<int> IgnoredAppIDs = new List<int>();
+    public List<string> Genres = new List<string>();
+    public List<string> BlockedGenres = new List<string>();
 
     [HideInInspector]
     public string json;
@@ -20,16 +24,26 @@ public class DataManager : MonoBehaviour
     public List<SteamApplication> steamApplications = new List<SteamApplication>();
     public Response Games;
 
-    public int MinimumPlaytime = 60;
-
     public bool IsDone = false;
+    [Header("Test purpouses only")]
+    public int PlaytimeAmount = 300;
+
+    public GameObject TogglePrefab;
+
+    public DataManager(bool isDone)
+    {
+        IsDone = isDone;
+    }
 
     private void Awake()
     {
+        Instance = this;
         WebAPIKey = System.IO.File.ReadAllText(Application.dataPath + "/" + WebAPIKeyFilePath);
 
         _getData = GetData();
-        StartCoroutine(_getData);
+
+        if (!IsDone)
+            StartCoroutine(_getData);
     }
 
     IEnumerator _getData;
@@ -44,8 +58,6 @@ public class DataManager : MonoBehaviour
         Root root = JsonUtility.FromJson<Root>(json);
         Debug.Log(root.response.game_count);
 
-        // Remove all games that have 0 playtime
-        root.response.games.RemoveAll(item => item.playtime_forever <= MinimumPlaytime);
         root.response.game_count = root.response.games.Count;
 
         Games = root.response;
@@ -53,6 +65,9 @@ public class DataManager : MonoBehaviour
         foreach (Game game in root.response.games)
         {
             if (IgnoredAppIDs.Contains(game.appid))
+                continue;
+
+            if (game.playtime_forever < PlaytimeAmount)
                 continue;
 
             requestURL = $"https://store.steampowered.com/api/appdetails?appids=" + game.appid.ToString() + "&l=english";
@@ -75,11 +90,34 @@ public class DataManager : MonoBehaviour
 
             app.ExtractGenres(json);
 
+            bool skipApp = false;
+
+            foreach (string genre in app.genres)
+            {
+                if (BlockedGenres.Contains(genre))
+                    skipApp = true;
+            }
+
+            if (skipApp)
+                continue;
+
+            foreach (string genre in app.genres)
+            {
+                if (!Genres.Contains(genre))
+                    Genres.Add(genre);
+            }
+
             steamApplications.Add(app);
         }
 
         Debug.Log("Done scrapping");
         IsDone = true;
+
+        foreach(string genre in Genres)
+        {
+            GameObject var = Instantiate(TogglePrefab, Modal.Instance.ToggleTransform);
+            var.GetComponent<GenreToggle>().SetData(genre);
+        }
     }    
 
     [Serializable]
