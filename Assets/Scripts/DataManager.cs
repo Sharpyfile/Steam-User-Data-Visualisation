@@ -25,10 +25,16 @@ public class DataManager : MonoBehaviour
     public Response Games;
 
     public bool IsDone = false;
-    [Header("Test purpouses only")]
-    public int PlaytimeAmount = 300;
+
+    [Header("WARNING: chart will not be rendered properly with games having 0 minutes in")]
+    public bool IgnoreZeroPlaytime = true;
 
     public GameObject TogglePrefab;
+
+    public List<Friend> Friends = new List<Friend>();
+
+    // Temporary list of games used for storing steamappid's extracted in IEnumerator
+    List<Game> tempGames = new List<Game>();
 
     public DataManager(bool isDone)
     {
@@ -49,29 +55,37 @@ public class DataManager : MonoBehaviour
     IEnumerator _getData;
     IEnumerator GetData()
     {
-        string requestURL = $"https://api.steampowered.com/IPlayerService/GetOwnedGames/v1/?key={WebAPIKey}&steamid={SteamID}&include_appinfo=false&include_played_free_games=true&count=3";
-        UnityWebRequest www = UnityWebRequest.Get(requestURL);
+        string requestURLFriends = $"https://api.steampowered.com/ISteamUser/GetFriendList/v1/?key={WebAPIKey}&steamid={SteamID}";
+        UnityWebRequest wwwFriends = UnityWebRequest.Get(requestURLFriends);
 
-        yield return www.SendWebRequest();
-        json = www.downloadHandler.text;
+        yield return wwwFriends.SendWebRequest();
 
-        Root root = JsonUtility.FromJson<Root>(json);
-        Debug.Log(root.response.game_count);
+        string friendsJson = wwwFriends.downloadHandler.text;
 
-        root.response.game_count = root.response.games.Count;
+        RootFriends tempRoot = JsonUtility.FromJson<RootFriends>(friendsJson);
 
-        Games = root.response;
+        foreach (Friend friend in tempRoot.friendslist.friends)
+        {
+            yield return GetGamesForSteamID(friend.steamid);
+            friend.games = this.tempGames;
+        }
 
-        foreach (Game game in root.response.games)
+        Friends = tempRoot.friendslist.friends;
+
+        yield return GetGamesForSteamID(SteamID);
+        Games.games = tempGames;
+        Games.game_count = tempGames.Count;
+
+        foreach (Game game in Games.games)
         {
             if (IgnoredAppIDs.Contains(game.appid))
                 continue;
 
-            if (game.playtime_forever < PlaytimeAmount)
+            if (IgnoreZeroPlaytime && game.playtime_forever <= 0)
                 continue;
 
-            requestURL = $"https://store.steampowered.com/api/appdetails?appids=" + game.appid.ToString() + "&l=english";
-            www = UnityWebRequest.Get(requestURL);
+            string requestURL = $"https://store.steampowered.com/api/appdetails?appids=" + game.appid.ToString() + "&l=english";
+            UnityWebRequest www = UnityWebRequest.Get(requestURL);
 
             yield return www.SendWebRequest();
             json = www.downloadHandler.text;
@@ -118,7 +132,19 @@ public class DataManager : MonoBehaviour
             GameObject var = Instantiate(TogglePrefab, Modal.Instance.ToggleTransform);
             var.GetComponent<GenreToggle>().SetData(genre);
         }
-    }    
+    }   
+    
+    IEnumerator GetGamesForSteamID(string steamID)
+    {
+        string requestURL = $"https://api.steampowered.com/IPlayerService/GetOwnedGames/v1/?key={WebAPIKey}&steamid={steamID}&include_appinfo=false&include_played_free_games=true&count=3";
+        UnityWebRequest www = UnityWebRequest.Get(requestURL);
+
+        yield return www.SendWebRequest();
+        json = www.downloadHandler.text;
+        Root root = JsonUtility.FromJson<Root>(json);
+        tempGames = root.response.games;
+    }
+
 
     [Serializable]
     public class Root
@@ -127,13 +153,29 @@ public class DataManager : MonoBehaviour
     }
 
     [Serializable]
+    public class RootFriends
+    {
+        public ResponseFriends friendslist;
+    }
+
+    [Serializable]
     public class Response
     {
         public int game_count;
         public List<Game> games = new List<Game>();
     }
+    [Serializable]
+    public class ResponseFriends
+    {
+        public List<Friend> friends = new List<Friend>();
+    }
 
-    // You dont need to create class that takes into account everything in json
+    [Serializable]
+    public class Friend
+    {
+        public string steamid;
+        public List<Game> games = new List<Game>();
+    }
 
 
     [Serializable]
@@ -152,6 +194,7 @@ public class DataManager : MonoBehaviour
             return $"AppID: {appid}, playtime_forever: {playtime_forever}, playtime_windows_forever: {playtime_windows_forever}, playtime_mac_forever: {playtime_mac_forever}";
         }
     }
+
     [Serializable]
     public class SteamApplication
     {
@@ -161,7 +204,6 @@ public class DataManager : MonoBehaviour
 
         public void ExtractGenres(string json)
         {
-            // Check scrapping for Sanctum 2, it gives from description as it seems
             string temp = json.Substring(json.IndexOf("genres") + 8);
             temp = temp.Split(']')[0];
             string[] genres = temp.Split('}');

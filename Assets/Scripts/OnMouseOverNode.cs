@@ -19,8 +19,13 @@ public class OnMouseOverNode : MonoBehaviour
 
     private void OnMouseOver()
     {
-        Modal.Instance.GameName.text = gameInfo.GameApplication.name;
-        Modal.Instance.GamePlaytime.text = $"{gameInfo.OwnedGame.playtime_forever / 60.0f} h";
+        if (gameInfo.GameApplication.steam_appid == 0)
+            Modal.Instance.GameName.text = "Other games, zoom for more info";
+        else
+            Modal.Instance.GameName.text = gameInfo.GameApplication.name;
+
+        float hours = gameInfo.OwnedGame.playtime_forever / 60.0f;
+        Modal.Instance.GamePlaytime.text = $"{(float)Mathf.Round(hours * 100.0f) / 100f} h";
         string genres = "";
 
         foreach(string genre in gameInfo.GameApplication.genres)

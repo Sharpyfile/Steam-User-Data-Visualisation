@@ -11,7 +11,6 @@ public class GenreToggle : MonoBehaviour
     public Text GenreCount;
     public Toggle Toggle;
     public Color HoverColor;
-    private Color _originalColor;
 
     public void SetData(string genreName)
     {
@@ -22,7 +21,13 @@ public class GenreToggle : MonoBehaviour
     public void OnGenreToggleClick()
     {
         var val = Toggle.isOn;
-        
+        if (val && !ChartRenderer.Instance.FilterGenres.Contains(GenreName))
+            ChartRenderer.Instance.FilterGenres.Add(GenreName);
+        else
+            ChartRenderer.Instance.FilterGenres.Remove(GenreName);
+
+        Modal.Instance.DrawOnValueChanged();
+        Modal.Instance.DrawPoints();
     }
     public void OnHoverEnter()
     {
@@ -35,9 +40,12 @@ public class GenreToggle : MonoBehaviour
 
             if (gameInfo.GameApplication.genres.Contains(GenreName))
             {
-                _originalColor = gameInfo.GetComponent<MeshRenderer>().material.color;
+                gameInfo.OriginalColor = gameInfo.GetComponent<MeshRenderer>().material.color;
                 gameInfo.GetComponent<MeshRenderer>().material.color = HoverColor;
                 ++count;
+
+                game.transform.position = new Vector3(game.transform.position.x, ChartRenderer.Instance.HeightDifference, game.transform.position.z);
+
             }
         }
         GenreCount.text = $"{count} games";
@@ -53,7 +61,8 @@ public class GenreToggle : MonoBehaviour
 
             if (gameInfo.GameApplication.genres.Contains(GenreName))
             {
-                gameInfo.GetComponent<MeshRenderer>().material.color = _originalColor;
+                gameInfo.GetComponent<MeshRenderer>().material.color = gameInfo.OriginalColor;
+                game.transform.position = new Vector3(game.transform.position.x, 0, game.transform.position.z);
             }
         }
 
