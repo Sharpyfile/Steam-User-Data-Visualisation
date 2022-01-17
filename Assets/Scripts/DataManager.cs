@@ -24,6 +24,8 @@ public class DataManager : MonoBehaviour
     public List<SteamApplication> steamApplications = new List<SteamApplication>();
     public Response Games;
 
+    public List<Game> OwnedGames = new List<Game>();
+
     public bool IsDone = false;
 
     [Header("WARNING: chart will not be rendered properly with games having 0 minutes in")]
@@ -76,6 +78,8 @@ public class DataManager : MonoBehaviour
         Games.games = tempGames;
         Games.game_count = tempGames.Count;
 
+        OwnedGames = Games.games;
+
         foreach (Game game in Games.games)
         {
             if (IgnoredAppIDs.Contains(game.appid))
@@ -121,16 +125,23 @@ public class DataManager : MonoBehaviour
                     Genres.Add(genre);
             }
 
+            app.genres.Sort();
+
             steamApplications.Add(app);
         }
 
         Debug.Log("Done scrapping");
         IsDone = true;
 
+        int index = 0;
         foreach(string genre in Genres)
         {
             GameObject var = Instantiate(TogglePrefab, Modal.Instance.ToggleTransform);
-            var.GetComponent<GenreToggle>().SetData(genre);
+            if (index < Modal.Instance.GenreColors.Count)
+                var.GetComponent<GenreToggle>().SetData(genre, Modal.Instance.GenreColors[index]);
+            else
+                var.GetComponent<GenreToggle>().SetData(genre);
+            index++;
         }
     }   
     

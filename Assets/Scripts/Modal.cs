@@ -13,7 +13,10 @@ public class Modal : MonoBehaviour
     public Text GameName;
     public Text GamePlaytime;
     public Text GameGenres;
+    public Text GameFriendsCount;
 
+    public GameObject ProgressContainer;
+    public Text ProgressText;
 
     public GameObject SliderContainer;
     public Text MinPlaytimeText;
@@ -34,6 +37,8 @@ public class Modal : MonoBehaviour
     public Transform FriendsContainer;
     public FriendItem FriendsPrefab;
 
+    public List<Color> GenreColors = new List<Color>();
+
 
     public void Awake()
     {
@@ -51,9 +56,14 @@ public class Modal : MonoBehaviour
         for (; ; )
         {
             yield return new WaitForSecondsRealtime(0.1f);
+
+            ProgressText.text = $"Progress: {DataManager.Instance.steamApplications.Count}/{DataManager.Instance.OwnedGames.Count}";
+
             if (DataManager.Instance.IsDone)
                 break;
         }
+
+        ProgressContainer.SetActive(false);
 
         foreach(Friend friend in DataManager.Instance.Friends)
         {
@@ -111,7 +121,7 @@ public class Modal : MonoBehaviour
         // make setup - First 
         MaxSlider.minValue = 1;
         MaxSlider.value = 1;
-        MaxSlider.maxValue = DataManager.Instance.Games.games.Max(item => item.playtime_forever);
+        MaxSlider.maxValue = DataManager.Instance.OwnedGames.Max(item => item.playtime_forever);
         // Add 1 to the max so it can be selected
         MaxSlider.maxValue = (MaxSlider.maxValue / 60) + 1;
         MaxSlider.value = MaxSlider.maxValue;
@@ -137,19 +147,29 @@ public class Modal : MonoBehaviour
 
     public void DrawOnValueChanged()
     {
-        ChartRenderer.Instance.DrawSunburst(MinSlider.value * 60, MaxSlider.value * 60);        
+        ChartRenderer.Instance.DrawSunburst(MinSlider.value * 60, MaxSlider.value * 60);
+        SetToggleCount();
     }
+
+    public void SetToggleCount()
+    {
+        foreach (Transform toggle in ToggleTransform)
+        {
+            toggle.gameObject.GetComponent<GenreToggle>().SetGenreCount();
+        }
+    }
+
 
     public void DrawPoints()
     {
         for(int i = PointContainer.childCount - 1; i >= 0; i--)
         {
             Destroy(PointContainer.GetChild(i).gameObject);
-        }
+        }        
 
-        int maxTime = DataManager.Instance.Games.games.Max(item => item.playtime_forever);
+        List<Game> allowedGames = new List<Game>();
 
-        foreach (DataManager.Game game in DataManager.Instance.Games.games)
+        foreach (DataManager.Game game in DataManager.Instance.OwnedGames)
         {
             bool skipGame = false;
 
@@ -166,11 +186,44 @@ public class Modal : MonoBehaviour
                     break;
                 }
             }
+
             if (skipGame)
                 continue;
 
+            foreach (Friend friend in ChartRenderer.Instance.FilterFriends)
+            {
+                if (friend.games.FirstOrDefault(item => item.appid == app.steam_appid) == null)
+                {
+                    skipGame = true;
+                    break;
+                }
+            }
+
+            if (skipGame)
+                continue;
+
+            allowedGames.Add(game);
+        }
+
+        int maxTime = allowedGames.Max(item => item.playtime_forever);
+
+        // make setup - First 
+        MaxSlider.minValue = allowedGames.Min(item => item.playtime_forever);
+        if (MaxSlider.minValue == 0)
+            MaxSlider.minValue = 1;
+        MaxSlider.minValue = allowedGames.Min(item => item.playtime_forever);
+        MaxSlider.value = MaxSlider.minValue;
+        MaxSlider.maxValue = allowedGames.Max(item => item.playtime_forever);
+        // Add 1 to the max so it can be selected
+        MaxSlider.maxValue = (MaxSlider.maxValue / 60) + 1;
+        MaxSlider.value = MaxSlider.maxValue;
+        MinSlider.minValue = MaxSlider.minValue;
+        MinSlider.maxValue = MaxSlider.maxValue;
+
+        foreach(Game game1 in allowedGames)
+        {
             var point = Instantiate(PointPrefab, PointContainer);
-            point.gameObject.transform.position = Vector2.Lerp(MinPoint.position, MaxPoint.position, (game.playtime_forever * 1.0f) / maxTime);
+            point.gameObject.transform.position = Vector2.Lerp(MinPoint.position, MaxPoint.position, (game1.playtime_forever * 1.0f) / maxTime);
         }
     }
 }

@@ -1,7 +1,9 @@
 using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 using UnityEngine.UI;
+using static DataManager;
 
 public class GenreToggle : MonoBehaviour
 {
@@ -11,24 +13,66 @@ public class GenreToggle : MonoBehaviour
     public Text GenreCount;
     public Toggle Toggle;
     public Color HoverColor;
+    public Image Background;
+
+    [HideInInspector]
+    public Color BackgroundColor;
+    public Color SelectedColor;
+
+    public void SetData(string genreName, Color color)
+    {
+        GenreName = genreName;
+        Genre.text = GenreName;
+        HoverColor = color;
+        ColorBlock temp = Toggle.colors;
+        temp.normalColor = color;
+        
+        temp.selectedColor = temp.normalColor;
+        temp.highlightedColor = temp.normalColor;
+        temp.pressedColor = temp.normalColor;
+        temp.disabledColor = temp.normalColor;
+        Toggle.colors = temp;
+
+        BackgroundColor = Background.color;
+        SetGenreCount();
+    }
 
     public void SetData(string genreName)
     {
         GenreName = genreName;
         Genre.text = GenreName;
+        ColorBlock temp = Toggle.colors;
+        Random.InitState(genreName.GetHashCode());
+        temp.normalColor = Random.ColorHSV(0.0f, 1.0f);
+        HoverColor = temp.normalColor;
+        temp.selectedColor = temp.normalColor;
+        temp.highlightedColor = temp.normalColor;
+        temp.pressedColor = temp.normalColor;
+        temp.disabledColor = temp.normalColor;
+        Toggle.colors = temp;
+
+        BackgroundColor = Background.color;
+        SetGenreCount();
     }
 
     public void OnGenreToggleClick()
     {
         var val = Toggle.isOn;
         if (val && !ChartRenderer.Instance.FilterGenres.Contains(GenreName))
+        {
             ChartRenderer.Instance.FilterGenres.Add(GenreName);
+            Background.color = SelectedColor;
+        }            
         else
+        {
             ChartRenderer.Instance.FilterGenres.Remove(GenreName);
-
+            Background.color = BackgroundColor;
+        }
+            
         Modal.Instance.DrawOnValueChanged();
         Modal.Instance.DrawPoints();
     }
+
     public void OnHoverEnter()
     {
         int count = 0;
@@ -51,6 +95,17 @@ public class GenreToggle : MonoBehaviour
         GenreCount.text = $"{count} games";
     }
 
+    public void SetGenreCount()
+    {
+        int count = 0;
+        foreach (SteamApplication app in ChartRenderer.Instance.CurrentGames)
+        {
+            if (app.genres.Contains(GenreName))
+                ++count;
+        }
+        GenreCount.text = $"{count} games";
+    }
+
     public void OnHoverExit()
     {
         foreach (Transform game in ChartRenderer.Instance.transform)
@@ -65,7 +120,5 @@ public class GenreToggle : MonoBehaviour
                 game.transform.position = new Vector3(game.transform.position.x, 0, game.transform.position.z);
             }
         }
-
-        GenreCount.text = "";
     }
 }

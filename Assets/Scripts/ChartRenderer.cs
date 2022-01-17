@@ -9,19 +9,27 @@ public class ChartRenderer : MonoBehaviour
     // Start is called before the first frame update
     public static ChartRenderer Instance;
 
+    public GameObject WaitingCube;
+
     public DataManager Data;
     public float RadiusInner;
     public float RadiusOuter;
 
     public int MinimumPlaytime = 300;
+    public int MaximumPlaytime = 300;
 
     public GameObject NodePrefab;
+    public GameObject GenreNodePrefab;
+    public GameObject FriendNodePrefab;
     public GameObject SpheresContainer;
 
     [Header("Height difference between nodes")]
     public float HeightDifference;
 
     public List<string> FilterGenres = new List<string>();
+    public List<Friend> FilterFriends = new List<Friend>();
+
+    public List<SteamApplication> CurrentGames = new List<SteamApplication>();
 
     private void Start()
     {
@@ -29,7 +37,27 @@ public class ChartRenderer : MonoBehaviour
 
         _drawSunburstChart = DrawSunburstChart();
         StartCoroutine(_drawSunburstChart);
+
+        _drawWaitingCube = DrawWaitingCube();
+        StartCoroutine(_drawWaitingCube);
     }
+
+    IEnumerator _drawWaitingCube;
+    IEnumerator DrawWaitingCube()
+    {
+        for (; ; )
+        {
+            if (Data.IsDone)
+                break;
+
+            WaitingCube.transform.localScale = new Vector3(Mathf.Abs(Mathf.Sin(Time.time)) * 10.0f + 1.0f, 1, Mathf.Abs(Mathf.Cos(Time.time)) * 10.0f + 1.0f);
+
+            yield return new WaitForEndOfFrame();
+        }
+
+        Destroy(WaitingCube);
+    }
+
 
     IEnumerator _drawSunburstChart;
     
@@ -57,7 +85,10 @@ public class ChartRenderer : MonoBehaviour
         //if (transform.childCount == Data.Games.games.FindAll(item => item.playtime_forever < minPlaytime || item.playtime_forever > maxPlaytime).Count)
         //    return;
 
-        for(int i = transform.childCount - 1; i >= 0; i--)
+        MinimumPlaytime = (int)minPlaytime;
+        MaximumPlaytime = (int)maxPlaytime;
+
+        for (int i = transform.childCount - 1; i >= 0; i--)
         {
             Destroy(transform.GetChild(i).gameObject);
         }
@@ -65,31 +96,14 @@ public class ChartRenderer : MonoBehaviour
         float arcDegrees = 0.0f;
         arcDegrees = arcDegrees * Mathf.Deg2Rad;
 
-        Data.Games.games = Data.Games.games.OrderByDescending(item => item.playtime_forever).ToList();
+        Data.OwnedGames = Data.OwnedGames.OrderByDescending(item => item.playtime_forever).ToList();
 
         int playtimeSum = 0;
+        CurrentGames.Clear();
 
-        foreach (Game game in Data.Games.games)
+        foreach (Game game in Data.OwnedGames)
         {
-            var app = Data.steamApplications.Find(item => item.steam_appid == game.appid);
-            if (app == null)
-                continue;
-
-            if (game.playtime_forever < minPlaytime || game.playtime_forever > maxPlaytime)
-                continue;
-
-            bool skipGame = false;
-
-            foreach(string genre in FilterGenres)
-            {
-                if (!app.genres.Contains(genre))
-                {
-                    skipGame = true;
-                    break;
-                }                    
-            }
-
-            if (skipGame)
+            if (!CheckIfShowGame(game))
                 continue;
 
             playtimeSum += game.playtime_forever;           
@@ -101,27 +115,10 @@ public class ChartRenderer : MonoBehaviour
         float remainingAngle = 0.0f;
         float remainingHours = 0.0f;
 
-        foreach (Game game in Data.Games.games)
+        foreach (Game game in Data.OwnedGames)
         {
             var app = Data.steamApplications.Find(item => item.steam_appid == game.appid);
-            if (app == null)
-                continue;
-
-            if (game.playtime_forever < minPlaytime || game.playtime_forever > maxPlaytime)
-                continue;
-
-            bool skipGame = false;
-
-            foreach (string genre in FilterGenres)
-            {
-                if (!app.genres.Contains(genre))
-                {
-                    skipGame = true;
-                    break;
-                }
-            }
-
-            if (skipGame)
+            if (!CheckIfShowGame(game))
                 continue;
 
             float time = game.playtime_forever * 100.0f / playtimeSum;
@@ -134,26 +131,72 @@ public class ChartRenderer : MonoBehaviour
                 continue;
             }
 
-            Mesh mesh = GenerateNodeMesh(angle, arcDegrees, out arcDegrees, time);
+            CurrentGames.Add(app);
+
+            float genreDegrees = arcDegrees;
+            Mesh mesh = GenerateNodeMesh(angle, arcDegrees, out arcDegrees, time, RadiusInner, RadiusOuter);
 
             GameObject newObject2 = Instantiate(NodePrefab, transform);
             newObject2.GetComponent<MeshFilter>().mesh = mesh;
             newObject2.GetComponent<GameInfo>().OwnedGame = game;
             newObject2.GetComponent<GameInfo>().GameApplication = Data.steamApplications.Find(item => item.steam_appid == game.appid);
             newObject2.GetComponent<MeshCollider>().sharedMesh = newObject2.GetComponent<MeshFilter>().mesh;
+            newObject2.GetComponent<MeshRenderer>().enabled = false;
 
-            Random.InitState(game.appid);
+            float innerRadius = RadiusInner;
+            float radiusWidth = (RadiusOuter - RadiusInner) / (float)app.genres.Count;
+            float temp = 0.0f;
 
-            Color randomColor = new Color(
-                Random.Range(0.0f, 1.0f),
-                Random.Range(0.0f, 1.0f),
-                Random.Range(0.0f, 1.0f));
+            for (int i = 0; i < app.genres.Count; ++i)
+            {
+                Mesh genreMesh = GenerateNodeMesh(angle, genreDegrees, out temp, time, innerRadius, innerRadius + radiusWidth);
+                GameObject genreObject = Instantiate(GenreNodePrefab);
+                genreObject.transform.SetParent(newObject2.transform);
 
-            newObject2.GetComponent<MeshRenderer>().material.color = randomColor;
-            newObject2.GetComponent<GameInfo>().OriginalColor = randomColor;
+                Color nodeColor = Color.white;
+                foreach (Transform toggle in Modal.Instance.ToggleTransform)
+                {
+                    var genreToggle = toggle.GetComponent<GenreToggle>();
+                    if (genreToggle != null && genreToggle.GenreName == app.genres[i])
+                    {
+                        nodeColor = genreToggle.HoverColor;
+                        break;
+                    }                        
+                }
+
+                genreObject.GetComponent<MeshFilter>().mesh = genreMesh;
+                genreObject.GetComponent<MeshRenderer>().material.color = nodeColor;
+
+                innerRadius += radiusWidth; 
+            }
+
+            innerRadius = RadiusOuter + 0.1f;
+            radiusWidth = 0.1f;
+
+            int friendCount = 0;
+            foreach(Friend friend in DataManager.Instance.Friends)
+            {
+                if (friend.games.FirstOrDefault(item => item.appid == app.steam_appid) != null)
+                    friendCount++;
+            }
+
+            for(int i = 0; i < friendCount; ++i)
+            {
+                Mesh friendMesh = GenerateNodeMesh(angle, genreDegrees, out temp, time, innerRadius, innerRadius + radiusWidth);
+                GameObject genreObject = Instantiate(FriendNodePrefab);
+                genreObject.transform.SetParent(newObject2.transform);
+
+                Color nodeColor = Color.white;
+
+                genreObject.GetComponent<MeshFilter>().mesh = friendMesh;
+                genreObject.GetComponent<MeshRenderer>().material.color = nodeColor;
+
+                innerRadius += radiusWidth;
+                innerRadius += radiusWidth;
+            }
         }
 
-        Mesh otherMesh = GenerateNodeMesh(remainingAngle, arcDegrees, out arcDegrees, remainingHours * 100.0f / playtimeSum);
+        Mesh otherMesh = GenerateNodeMesh(remainingAngle, arcDegrees, out arcDegrees, remainingHours * 100.0f / playtimeSum, RadiusInner, RadiusOuter);
 
         GameObject newObject = Instantiate(NodePrefab, transform);
         newObject.GetComponent<MeshFilter>().mesh = otherMesh;
@@ -163,7 +206,7 @@ public class ChartRenderer : MonoBehaviour
         newObject.GetComponent<GameInfo>().OriginalColor = Color.white;
     }
 
-    Mesh GenerateNodeMesh(float angle, float arcDegrees, out float outArcDegrees, float time)
+    Mesh GenerateNodeMesh(float angle, float arcDegrees, out float outArcDegrees, float time, float radiusInner, float radiusOuter)
     {
         Mesh mesh = new Mesh();
         List<Vector3> lowerArc = new List<Vector3>();
@@ -175,13 +218,13 @@ public class ChartRenderer : MonoBehaviour
 
         for (int i = 0; i < count; i++)
         {
-            float innerX = Mathf.Cos(arcDegrees + (0.5f * i) * Mathf.Deg2Rad) * RadiusInner + center.x;
+            float innerX = Mathf.Cos(arcDegrees + (0.5f * i) * Mathf.Deg2Rad) * radiusInner + center.x;
             float innerY = center.y;
-            float innerZ = Mathf.Sin(arcDegrees + (0.5f * i) * Mathf.Deg2Rad) * RadiusInner + center.z;
+            float innerZ = Mathf.Sin(arcDegrees + (0.5f * i) * Mathf.Deg2Rad) * radiusInner + center.z;
 
-            float outerX = Mathf.Cos(arcDegrees + (0.5f * i) * Mathf.Deg2Rad) * RadiusOuter + center.x;
+            float outerX = Mathf.Cos(arcDegrees + (0.5f * i) * Mathf.Deg2Rad) * radiusOuter + center.x;
             float outerY = center.y;
-            float outerZ = Mathf.Sin(arcDegrees + (0.5f * i) * Mathf.Deg2Rad) * RadiusOuter + center.z;
+            float outerZ = Mathf.Sin(arcDegrees + (0.5f * i) * Mathf.Deg2Rad) * radiusOuter + center.z;
 
             lowerArc.Add(new Vector3(innerX, innerY, innerZ));
             upperArc.Add(new Vector3(outerX, outerY, outerZ));
@@ -217,5 +260,33 @@ public class ChartRenderer : MonoBehaviour
         mesh.triangles = indices.ToArray();
 
         return mesh;
+    }
+
+    public bool CheckIfShowGame(Game game)
+    {
+        var app = DataManager.Instance.steamApplications.Find(item => item.steam_appid == game.appid);
+        if (app == null)
+            return false;
+
+        if (game.playtime_forever <= MinimumPlaytime || game.playtime_forever > MaximumPlaytime)
+            return false;
+
+        foreach (string genre in FilterGenres)
+        {
+            if (!app.genres.Contains(genre))
+            {
+                return false;
+            }
+        }
+
+        foreach (Friend friend in FilterFriends)
+        {
+            if (friend.games.FirstOrDefault(item => item.appid == app.steam_appid) == null)
+            {
+                return false;
+            }
+        }
+
+        return true;
     }
 }

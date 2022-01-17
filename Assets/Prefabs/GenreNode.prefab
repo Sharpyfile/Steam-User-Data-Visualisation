@@ -11,11 +11,8 @@ GameObject:
   - component: {fileID: 1541869014059323490}
   - component: {fileID: 7937472687789163245}
   - component: {fileID: 6474618666889568006}
-  - component: {fileID: 8281881255438290181}
-  - component: {fileID: -1345653904983532374}
-  - component: {fileID: 5858165954006023281}
   m_Layer: 0
-  m_Name: Node
+  m_Name: GenreNode
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -84,52 +81,3 @@ MeshRenderer:
   m_SortingLayer: 0
   m_SortingOrder: 0
   m_AdditionalVertexStreams: {fileID: 0}
---- !u!64 &8281881255438290181
-MeshCollider:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1688882848708592783}
-  m_Material: {fileID: 0}
-  m_IsTrigger: 0
-  m_Enabled: 1
-  serializedVersion: 4
-  m_Convex: 0
-  m_CookingOptions: 30
-  m_Mesh: {fileID: 0}
---- !u!114 &-1345653904983532374
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1688882848708592783}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 2640fa74dd839f943ac686a78f8d4f03, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  MouseOverColor: {r: 1, g: 0, b: 0, a: 1}
---- !u!114 &5858165954006023281
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1688882848708592783}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 9c837cb14a7d17b46af9418e5d82211a, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  OwnedGame:
-    appid: 0
-    playtime_forever: 0
-    playtime_windows_forever: 0
-    playtime_mac_forever: 0
-  GameApplication:
-    genres: []
-    name: 
-    steam_appid: 0
-  OriginalColor: {r: 0, g: 0, b: 0, a: 0}

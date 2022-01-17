@@ -1,5 +1,6 @@
 using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 
 public class OnMouseOverNode : MonoBehaviour
@@ -33,6 +34,21 @@ public class OnMouseOverNode : MonoBehaviour
             genres += genre + "\n";
         }
 
+        int friendsCount = 0;
+        foreach (Transform friendItem in Modal.Instance.FriendsContainer)
+        {
+            FriendItem friend = friendItem.GetComponent<FriendItem>();
+            if (friend != null)
+            {
+                if (friend.FriendData.games.FirstOrDefault(item => item.appid == gameInfo.GameApplication.steam_appid) == null)
+                    friendItem.gameObject.SetActive(false);
+                else
+                    ++friendsCount;
+            }
+        }
+
+        Modal.Instance.GameFriendsCount.text = $"Friends owning game: {friendsCount}";
+
         Modal.Instance.GameGenres.text = genres;
         meshRenderer.material.color = MouseOverColor;
     }
@@ -43,5 +59,12 @@ public class OnMouseOverNode : MonoBehaviour
         Modal.Instance.GameName.text = "";
         Modal.Instance.GamePlaytime.text = "";
         Modal.Instance.GameGenres.text = "";
+        Modal.Instance.GameFriendsCount.text = "";
+
+        foreach (Transform friendItem in Modal.Instance.FriendsContainer)
+        {
+            friendItem.gameObject.SetActive(true);
+        }
     }
+
 }

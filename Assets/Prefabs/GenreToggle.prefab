@@ -164,7 +164,7 @@ MonoBehaviour:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 2917987067452271186}
-  m_Enabled: 1
+  m_Enabled: 0
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 4e29b1a8efbd4b44bb3f3716e73f07ff, type: 3}
   m_Name: 
@@ -196,7 +196,7 @@ MonoBehaviour:
     m_PressedTrigger: Pressed
     m_SelectedTrigger: Selected
     m_DisabledTrigger: Disabled
-  m_Interactable: 1
+  m_Interactable: 0
   m_TargetGraphic: {fileID: 1891418548582236762}
   m_OnClick:
     m_PersistentCalls:
@@ -416,6 +416,9 @@ MonoBehaviour:
   GenreCount: {fileID: 1668187279765256467}
   Toggle: {fileID: 4883269558864240594}
   HoverColor: {r: 1, g: 0, b: 0, a: 0}
+  Background: {fileID: 1891418548582236762}
+  BackgroundColor: {r: 0, g: 0, b: 0, a: 0}
+  SelectedColor: {r: 1, g: 0, b: 0, a: 0.47058824}
 --- !u!1 &5873342485355786251
 GameObject:
   m_ObjectHideFlags: 0
