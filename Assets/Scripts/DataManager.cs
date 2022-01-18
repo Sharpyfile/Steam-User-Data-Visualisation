@@ -91,8 +91,30 @@ public class DataManager : MonoBehaviour
             string requestURL = $"https://store.steampowered.com/api/appdetails?appids=" + game.appid.ToString() + "&l=english";
             UnityWebRequest www = UnityWebRequest.Get(requestURL);
 
-            yield return www.SendWebRequest();
-            json = www.downloadHandler.text;
+            for(; ; )
+            {
+                yield return www.SendWebRequest();
+                json = www.downloadHandler.text;
+
+                int successIndex = json.IndexOf("success\":");
+                if (successIndex < 0)
+                    continue;
+
+                string success = json.Substring(successIndex + 10);
+                success = success.Split(',')[0];
+                if (success == "false")
+                {
+                    Debug.Log("Response is false, repeating");
+                    continue;
+                }
+                else
+                {
+                    Debug.Log("Success");
+                    break;
+                }
+            }
+            
+            
 
             SteamApplication app = new SteamApplication();
             int indexof = json.IndexOf("name\":");
