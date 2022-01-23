@@ -13,6 +13,7 @@ public class DataManager : MonoBehaviour
     public string WebAPIKey;
     public string WebAPIKeyFilePath;
     public string SteamID;
+    public int RepeatRequestCounter = 10;
 
     public List<int> IgnoredAppIDs = new List<int>();
     public List<string> Genres = new List<string>();
@@ -63,6 +64,7 @@ public class DataManager : MonoBehaviour
         yield return wwwFriends.SendWebRequest();
 
         string friendsJson = wwwFriends.downloadHandler.text;
+        wwwFriends.Dispose();
 
         RootFriends tempRoot = JsonUtility.FromJson<RootFriends>(friendsJson);
 
@@ -89,30 +91,37 @@ public class DataManager : MonoBehaviour
                 continue;
 
             string requestURL = $"https://store.steampowered.com/api/appdetails?appids=" + game.appid.ToString() + "&l=english";
-            UnityWebRequest www = UnityWebRequest.Get(requestURL);
 
-            for(; ; )
+            bool stop = true;
+            for(int i = 0; i < RepeatRequestCounter; ++i)
             {
-                yield return www.SendWebRequest();
-                json = www.downloadHandler.text;
-
-                int successIndex = json.IndexOf("success\":");
-                if (successIndex < 0)
-                    continue;
-
-                string success = json.Substring(successIndex + 10);
-                success = success.Split(',')[0];
-                if (success == "false")
+                using(UnityWebRequest www = UnityWebRequest.Get(requestURL))
                 {
-                    Debug.Log("Response is false, repeating");
-                    continue;
-                }
-                else
-                {
-                    Debug.Log("Success");
-                    break;
-                }
+                    yield return www.SendWebRequest();
+                    json = www.downloadHandler.text;
+
+                    int successIndex = json.IndexOf("success\":");
+                    if (successIndex < 0)
+                    {
+                        continue;
+                    }
+
+                    string success = json.Substring(successIndex + 10);
+                    success = success.Split(',')[0];
+                    if (success == "false")
+                    {
+                        continue;
+                    }
+                    else
+                    {
+                        stop = false;
+                        break;
+                    }
+                }                
             }
+
+            if (stop)
+                continue;
             
             
 
@@ -174,6 +183,7 @@ public class DataManager : MonoBehaviour
 
         yield return www.SendWebRequest();
         json = www.downloadHandler.text;
+        www.Dispose();
         Root root = JsonUtility.FromJson<Root>(json);
         tempGames = root.response.games;
     }

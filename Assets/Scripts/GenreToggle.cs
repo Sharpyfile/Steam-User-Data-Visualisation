@@ -14,24 +14,26 @@ public class GenreToggle : MonoBehaviour
     public Toggle Toggle;
     public Color HoverColor;
     public Image Background;
+    public Image FrameImage;
+
+    public Transform PositionTransform;
+
+    public int XOffset = 40;
+    public float Time = 10.0f;
+
+    Vector3 _originPosition;
 
     [HideInInspector]
     public Color BackgroundColor;
-    public Color SelectedColor;
 
     public void SetData(string genreName, Color color)
     {
+        _originPosition = PositionTransform.position;
         GenreName = genreName;
         Genre.text = GenreName;
         HoverColor = color;
         ColorBlock temp = Toggle.colors;
-        temp.normalColor = color;
-        
-        temp.selectedColor = temp.normalColor;
-        temp.highlightedColor = temp.normalColor;
-        temp.pressedColor = temp.normalColor;
-        temp.disabledColor = temp.normalColor;
-        Toggle.colors = temp;
+        FrameImage.color = color;
 
         BackgroundColor = Background.color;
         SetGenreCount();
@@ -39,17 +41,14 @@ public class GenreToggle : MonoBehaviour
 
     public void SetData(string genreName)
     {
+        _originPosition = PositionTransform.position;
         GenreName = genreName;
         Genre.text = GenreName;
         ColorBlock temp = Toggle.colors;
         Random.InitState(genreName.GetHashCode());
         temp.normalColor = Random.ColorHSV(0.0f, 1.0f);
         HoverColor = temp.normalColor;
-        temp.selectedColor = temp.normalColor;
-        temp.highlightedColor = temp.normalColor;
-        temp.pressedColor = temp.normalColor;
-        temp.disabledColor = temp.normalColor;
-        Toggle.colors = temp;
+        FrameImage.color = temp.normalColor;
 
         BackgroundColor = Background.color;
         SetGenreCount();
@@ -61,17 +60,17 @@ public class GenreToggle : MonoBehaviour
         if (val && !ChartRenderer.Instance.FilterGenres.Contains(GenreName))
         {
             ChartRenderer.Instance.FilterGenres.Add(GenreName);
-            Background.color = SelectedColor;
         }            
         else
         {
             ChartRenderer.Instance.FilterGenres.Remove(GenreName);
-            Background.color = BackgroundColor;
         }
             
         Modal.Instance.DrawOnValueChanged();
         Modal.Instance.DrawPoints();
     }
+
+    #region On Hover
 
     public void OnHoverEnter()
     {
@@ -92,19 +91,11 @@ public class GenreToggle : MonoBehaviour
 
             }
         }
+        RollOut();
+
         GenreCount.text = $"{count} games";
     }
 
-    public void SetGenreCount()
-    {
-        int count = 0;
-        foreach (SteamApplication app in ChartRenderer.Instance.CurrentGames)
-        {
-            if (app.genres.Contains(GenreName))
-                ++count;
-        }
-        GenreCount.text = $"{count} games";
-    }
 
     public void OnHoverExit()
     {
@@ -120,5 +111,62 @@ public class GenreToggle : MonoBehaviour
                 game.transform.position = new Vector3(game.transform.position.x, 0, game.transform.position.z);
             }
         }
+
+        RollIn();
+    }
+
+    #endregion
+
+    private void Update()
+    {
+        if (percent < 1)
+        {
+            PositionTransform.position = Vector3.Lerp(oldPosition, newPosition, percent);
+
+            percent = (timeLeft / Time);
+            timeLeft += UnityEngine.Time.deltaTime;
+        }
+    }
+
+
+    float percent = 1.0f;
+    float timeLeft;
+    Vector3 oldPosition;
+    Vector3 newPosition;
+
+    public void RollOut()
+    {
+        float distancePoint = Mathf.Abs((_originPosition.x - PositionTransform.position.x));
+        // [0 - 1], it gets for how long it needs to be moved
+        percent = distancePoint / XOffset;
+        timeLeft = Time * percent;
+        Debug.Log(percent);
+        oldPosition = PositionTransform.position;
+        newPosition = oldPosition;
+        newPosition.x = _originPosition.x + XOffset;       
+    }
+
+    public void RollIn()
+    {
+        float distancePoint = Mathf.Abs((_originPosition.x - PositionTransform.position.x));
+
+        // [0 - 1], it gets for how long it needs to be moved
+        percent = 1 - distancePoint / XOffset;
+        timeLeft = Time * percent;
+        Debug.Log(percent);
+        oldPosition = PositionTransform.position;
+        newPosition = oldPosition;
+        newPosition.x = _originPosition.x;
+    }
+
+    public void SetGenreCount()
+    {
+        int count = 0;
+        foreach (SteamApplication app in ChartRenderer.Instance.CurrentGames)
+        {
+            if (app.genres.Contains(GenreName))
+                ++count;
+        }
+        GenreCount.text = $"{count} games";
     }
 }

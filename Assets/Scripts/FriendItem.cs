@@ -16,6 +16,12 @@ public class FriendItem : MonoBehaviour
     public Color BackgroundColor;
     public Color SelectedColor;
 
+    public Transform PositionTransform;
+
+    public int XOffset = -40;
+    public float Time = 0.3f;
+
+    Vector3 _originPosition;
 
     public void SetData(Texture2D texture, string name, Friend data)
     {
@@ -65,5 +71,47 @@ public class FriendItem : MonoBehaviour
 
         Modal.Instance.DrawOnValueChanged();
         Modal.Instance.DrawPoints();
+    }
+
+    private void Update()
+    {
+        if (percent < 1)
+        {
+            PositionTransform.position = Vector3.Lerp(oldPosition, newPosition, percent);
+
+            percent = (timeLeft / Time);
+            timeLeft += UnityEngine.Time.deltaTime;
+        }
+    }
+
+
+    float percent = 1.0f;
+    float timeLeft;
+    Vector3 oldPosition;
+    Vector3 newPosition;
+
+    public void RollOut()
+    {
+        float distancePoint = Mathf.Abs((_originPosition.x - PositionTransform.position.x));
+        // [0 - 1], it gets for how long it needs to be moved
+        percent = distancePoint / Mathf.Abs(XOffset);
+        timeLeft = Time * percent;
+        Debug.Log(percent);
+        oldPosition = PositionTransform.position;
+        newPosition = oldPosition;
+        newPosition.x = _originPosition.x + XOffset;
+    }
+
+    public void RollIn()
+    {
+        float distancePoint = Mathf.Abs((_originPosition.x - PositionTransform.position.x));
+
+        // [0 - 1], it gets for how long it needs to be moved
+        percent = 1 - distancePoint / Mathf.Abs(XOffset);
+        timeLeft = Time * percent;
+        Debug.Log(percent);
+        oldPosition = PositionTransform.position;
+        newPosition = oldPosition;
+        newPosition.x = _originPosition.x;
     }
 }

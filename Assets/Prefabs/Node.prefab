@@ -111,6 +111,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   MouseOverColor: {r: 1, g: 0, b: 0, a: 1}
+  Point: {x: 0, y: 0, z: 0}
 --- !u!114 &5858165954006023281
 MonoBehaviour:
   m_ObjectHideFlags: 0

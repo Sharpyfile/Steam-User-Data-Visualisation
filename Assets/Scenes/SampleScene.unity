@@ -621,6 +621,7 @@ MonoBehaviour:
   WebAPIKey: 
   WebAPIKeyFilePath: webapikey.DONOTPOST
   SteamID: 76561198065804093
+  RepeatRequestCounter: 10
   IgnoredAppIDs: c634050052370300c4d3030066940500
   Genres: []
   BlockedGenres:
@@ -636,6 +637,7 @@ MonoBehaviour:
   Games:
     game_count: 0
     games: []
+  OwnedGames: []
   IsDone: 0
   IgnoreZeroPlaytime: 0
   TogglePrefab: {fileID: 5782970279196897743, guid: d3ca3239d50e7c54895f01fa42a145c5, type: 3}
@@ -739,6 +741,30 @@ PrefabInstance:
     - target: {fileID: 807969927845360182, guid: ca32c2c44628b574f801b0e0b4a1af18, type: 3}
       propertyPath: m_Name
       value: Canvas
+      objectReference: {fileID: 0}
+    - target: {fileID: 4399037091936948563, guid: ca32c2c44628b574f801b0e0b4a1af18, type: 3}
+      propertyPath: m_AnchorMax.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 4399037091936948563, guid: ca32c2c44628b574f801b0e0b4a1af18, type: 3}
+      propertyPath: m_AnchorMax.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 4399037091936948563, guid: ca32c2c44628b574f801b0e0b4a1af18, type: 3}
+      propertyPath: m_AnchorMin.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 6813177932810697778, guid: ca32c2c44628b574f801b0e0b4a1af18, type: 3}
+      propertyPath: m_AnchoredPosition.y
+      value: -0.0000032186508
+      objectReference: {fileID: 0}
+    - target: {fileID: 7735753783107970704, guid: ca32c2c44628b574f801b0e0b4a1af18, type: 3}
+      propertyPath: m_AnchorMax.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 7735753783107970704, guid: ca32c2c44628b574f801b0e0b4a1af18, type: 3}
+      propertyPath: m_AnchorMax.y
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 7798680980508330751, guid: ca32c2c44628b574f801b0e0b4a1af18, type: 3}
       propertyPath: m_SizeDelta.y

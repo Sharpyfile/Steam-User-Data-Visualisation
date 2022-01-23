@@ -10,6 +10,8 @@ public class Modal : MonoBehaviour
 {
     public static Modal Instance;
 
+    public GameObject GameInfoContainer;
+
     public Text GameName;
     public Text GamePlaytime;
     public Text GameGenres;
@@ -19,6 +21,8 @@ public class Modal : MonoBehaviour
     public Text ProgressText;
 
     public GameObject SliderContainer;
+    public Text MinPlaytimeSliderText;
+    public Text MaxPlaytimeSliderText;
     public Text MinPlaytimeText;
     public Text MaxPlaytimeText;
     public Text SelectedPlaytime;
@@ -138,8 +142,10 @@ public class Modal : MonoBehaviour
             if (MinSlider.value > MaxSlider.value)
                 MinSlider.value = MaxSlider.value;
 
-            MinPlaytimeText.text = (MinSlider.value).ToString() + "h";
-            MaxPlaytimeText.text = (MaxSlider.value).ToString() + "h";
+            MinPlaytimeText.text = (MinSlider.minValue).ToString() + "h";
+            MinPlaytimeSliderText.text = (MinSlider.value).ToString() + "h";
+            MaxPlaytimeText.text = ((int)(MaxSlider.maxValue + 1)).ToString() + "h";
+            MaxPlaytimeSliderText.text = (MaxSlider.value).ToString() + "h";
 
             yield return new WaitForEndOfFrame();
         }
@@ -205,6 +211,9 @@ public class Modal : MonoBehaviour
             allowedGames.Add(game);
         }
 
+        if (allowedGames.Count <= 0)
+            return;
+
         int maxTime = allowedGames.Max(item => item.playtime_forever);
 
         // make setup - First 
@@ -213,7 +222,7 @@ public class Modal : MonoBehaviour
             MaxSlider.minValue = 1;
         MaxSlider.minValue = allowedGames.Min(item => item.playtime_forever);
         MaxSlider.value = MaxSlider.minValue;
-        MaxSlider.maxValue = allowedGames.Max(item => item.playtime_forever);
+        MaxSlider.maxValue = allowedGames.Max(item => item.playtime_forever) + 1;
         // Add 1 to the max so it can be selected
         MaxSlider.maxValue = (MaxSlider.maxValue / 60) + 1;
         MaxSlider.value = MaxSlider.maxValue;

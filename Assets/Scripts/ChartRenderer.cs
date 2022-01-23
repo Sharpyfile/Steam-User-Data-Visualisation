@@ -82,16 +82,8 @@ public class ChartRenderer : MonoBehaviour
     /// <param name="arcDegrees"> Arc degree, needs to be in radians</param>
     public void DrawSunburst(float minPlaytime, float maxPlaytime)
     {
-        //if (transform.childCount == Data.Games.games.FindAll(item => item.playtime_forever < minPlaytime || item.playtime_forever > maxPlaytime).Count)
-        //    return;
-
         MinimumPlaytime = (int)minPlaytime;
         MaximumPlaytime = (int)maxPlaytime;
-
-        for (int i = transform.childCount - 1; i >= 0; i--)
-        {
-            Destroy(transform.GetChild(i).gameObject);
-        }
 
         float arcDegrees = 0.0f;
         arcDegrees = arcDegrees * Mathf.Deg2Rad;
@@ -115,6 +107,32 @@ public class ChartRenderer : MonoBehaviour
         float remainingAngle = 0.0f;
         float remainingHours = 0.0f;
 
+        int count = 1;
+
+        foreach(Game game in Data.OwnedGames)
+        {
+            if (!CheckIfShowGame(game))
+                continue;
+
+            float time = game.playtime_forever * 100.0f / playtimeSum;
+            float angle = 360.0f * time / 100.0f;
+
+            if (angle < 1.0f)
+            {
+                continue;
+            }
+
+            ++count;
+        }
+
+        if (transform.childCount == count)
+            return;
+
+        for (int i = transform.childCount - 1; i >= 0; i--)
+        {
+            Destroy(transform.GetChild(i).gameObject);
+        }
+
         foreach (Game game in Data.OwnedGames)
         {
             var app = Data.steamApplications.Find(item => item.steam_appid == game.appid);
@@ -134,7 +152,8 @@ public class ChartRenderer : MonoBehaviour
             CurrentGames.Add(app);
 
             float genreDegrees = arcDegrees;
-            Mesh mesh = GenerateNodeMesh(angle, arcDegrees, out arcDegrees, time, RadiusInner, RadiusOuter);
+            Vector3 point;
+            Mesh mesh = GenerateNodeMesh(angle, arcDegrees, out arcDegrees, time, RadiusInner, RadiusOuter, out point);
 
             GameObject newObject2 = Instantiate(NodePrefab, transform);
             newObject2.GetComponent<MeshFilter>().mesh = mesh;
@@ -142,6 +161,7 @@ public class ChartRenderer : MonoBehaviour
             newObject2.GetComponent<GameInfo>().GameApplication = Data.steamApplications.Find(item => item.steam_appid == game.appid);
             newObject2.GetComponent<MeshCollider>().sharedMesh = newObject2.GetComponent<MeshFilter>().mesh;
             newObject2.GetComponent<MeshRenderer>().enabled = false;
+            newObject2.GetComponent<OnMouseOverNode>().Point = point;
 
             float innerRadius = RadiusInner;
             float radiusWidth = (RadiusOuter - RadiusInner) / (float)app.genres.Count;
@@ -149,7 +169,7 @@ public class ChartRenderer : MonoBehaviour
 
             for (int i = 0; i < app.genres.Count; ++i)
             {
-                Mesh genreMesh = GenerateNodeMesh(angle, genreDegrees, out temp, time, innerRadius, innerRadius + radiusWidth);
+                Mesh genreMesh = GenerateNodeMesh(angle, genreDegrees, out temp, time, innerRadius, innerRadius + radiusWidth, out point);
                 GameObject genreObject = Instantiate(GenreNodePrefab);
                 genreObject.transform.SetParent(newObject2.transform);
 
@@ -173,16 +193,19 @@ public class ChartRenderer : MonoBehaviour
             innerRadius = RadiusOuter + 0.1f;
             radiusWidth = 0.1f;
 
-            int friendCount = 0;
+            List<Friend> friendsOwningGame = new List<Friend>();
+
             foreach(Friend friend in DataManager.Instance.Friends)
             {
                 if (friend.games.FirstOrDefault(item => item.appid == app.steam_appid) != null)
-                    friendCount++;
+                {
+                    friendsOwningGame.Add(friend);
+                }
             }
 
-            for(int i = 0; i < friendCount; ++i)
+            foreach(Friend friend in friendsOwningGame)
             {
-                Mesh friendMesh = GenerateNodeMesh(angle, genreDegrees, out temp, time, innerRadius, innerRadius + radiusWidth);
+                Mesh friendMesh = GenerateNodeMesh(angle, genreDegrees, out temp, time, innerRadius, innerRadius + radiusWidth, out point);
                 GameObject genreObject = Instantiate(FriendNodePrefab);
                 genreObject.transform.SetParent(newObject2.transform);
 
@@ -190,13 +213,16 @@ public class ChartRenderer : MonoBehaviour
 
                 genreObject.GetComponent<MeshFilter>().mesh = friendMesh;
                 genreObject.GetComponent<MeshRenderer>().material.color = nodeColor;
+                genreObject.GetComponent<MeshCollider>().sharedMesh = genreObject.GetComponent<MeshFilter>().mesh;
+                genreObject.GetComponent<OnMouseOverFriendNode>().SteamID = friend.steamid;
 
                 innerRadius += radiusWidth;
                 innerRadius += radiusWidth;
             }
         }
 
-        Mesh otherMesh = GenerateNodeMesh(remainingAngle, arcDegrees, out arcDegrees, remainingHours * 100.0f / playtimeSum, RadiusInner, RadiusOuter);
+        Vector3 point2;
+        Mesh otherMesh = GenerateNodeMesh(remainingAngle, arcDegrees, out arcDegrees, remainingHours * 100.0f / playtimeSum, RadiusInner, RadiusOuter, out point2);
 
         GameObject newObject = Instantiate(NodePrefab, transform);
         newObject.GetComponent<MeshFilter>().mesh = otherMesh;
@@ -206,7 +232,7 @@ public class ChartRenderer : MonoBehaviour
         newObject.GetComponent<GameInfo>().OriginalColor = Color.white;
     }
 
-    Mesh GenerateNodeMesh(float angle, float arcDegrees, out float outArcDegrees, float time, float radiusInner, float radiusOuter)
+    Mesh GenerateNodeMesh(float angle, float arcDegrees, out float outArcDegrees, float time, float radiusInner, float radiusOuter, out Vector3 point)
     {
         Mesh mesh = new Mesh();
         List<Vector3> lowerArc = new List<Vector3>();
@@ -233,6 +259,14 @@ public class ChartRenderer : MonoBehaviour
         float newArcDegrees = arcDegrees * Mathf.Rad2Deg;
         newArcDegrees += (360.0f * time / 100.0f);
         outArcDegrees = newArcDegrees * Mathf.Deg2Rad;
+
+        float midAngle = arcDegrees * Mathf.Rad2Deg + (360.0f * time / 200.0f);
+        midAngle = midAngle * Mathf.Deg2Rad;
+        point = new Vector3();
+        float midPoint = Mathf.Lerp(radiusInner, radiusOuter, 0.5f);
+        point.x = (Mathf.Cos(midAngle) * Mathf.Deg2Rad) * midPoint + center.x;
+        point.y = center.y;
+        point.z = (Mathf.Sin(midAngle) * Mathf.Deg2Rad) * midPoint + center.z;
 
         List<Vector3> vertices = new List<Vector3>();
         List<int> indices = new List<int>();
